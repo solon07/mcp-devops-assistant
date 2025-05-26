@@ -28,7 +28,7 @@ server.tool(
     try {
       const historyPath = join(homedir(), ".zsh_history");
       const historyContent = await readFile(historyPath, "utf-8");
-      
+
       // Parsear o histórico do Zsh (formato especial)
       const lines = historyContent.split("\n");
       const commands = lines
@@ -46,7 +46,7 @@ server.tool(
       return {
         content: [{
           type: "text",
-          text: `❌ Erro ao ler histórico: ${error.message}\n\nDica: Verifica se o arquivo ~/.zsh_history existe!`
+          text: `❌ Erro ao ler histórico: ${error instanceof Error ? error.message : String(error)}\n\nDica: Verifica se o arquivo ~/.zsh_history existe!`
         }]
       };
     }
@@ -76,7 +76,7 @@ server.tool(
       return {
         content: [{
           type: "text",
-          text: `❌ Erro ao listar containers: ${error.message}\n\nVerifica se o Docker tá rodando: systemctl status docker`
+          text: `❌ Erro ao listar containers: ${error instanceof Error ? error.message : String(error)}\n\nVerifica se o Docker tá rodando: systemctl status docker`
         }]
       };
     }
@@ -106,7 +106,7 @@ server.tool(
       return {
         content: [{
           type: "text",
-          text: `❌ Erro ao pegar logs: ${error.message}\n\nVerifica se o container existe: docker ps -a`
+          text: `❌ Erro ao pegar logs: ${error instanceof Error ? error.message : String(error)}\n\nVerifica se o container existe: docker ps -a`
         }]
       };
     }
@@ -121,13 +121,13 @@ server.resource(
     try {
       const { stdout: info } = await execAsync("docker info --format json");
       const dockerInfo = JSON.parse(info);
-      
+
       const { stdout: containers } = await execAsync("docker ps -a --format json");
-      const containerList = containers.trim().split("\n").filter(Boolean).map(JSON.parse);
-      
+      const containerList = containers.trim().split("\n").filter(Boolean).map(line => JSON.parse(line));
+
       const running = containerList.filter(c => c.State === "running").length;
       const total = containerList.length;
-      
+
       return {
         contents: [{
           uri: uri.href,
@@ -142,9 +142,9 @@ Driver: ${dockerInfo.Driver}
 
 Containers Rodando:
 ${containerList
-  .filter(c => c.State === "running")
-  .map(c => `- ${c.Names}: ${c.Image}`)
-  .join("\n") || "Nenhum container rodando"}
+              .filter(c => c.State === "running")
+              .map(c => `- ${c.Names}: ${c.Image}`)
+              .join("\n") || "Nenhum container rodando"}
 
 Use "list_docker_containers" pra ver todos!`
         }]
@@ -154,7 +154,7 @@ Use "list_docker_containers" pra ver todos!`
         contents: [{
           uri: uri.href,
           mimeType: "text/plain",
-          text: `❌ Erro ao pegar status do Docker: ${error.message}`
+          text: `❌ Erro ao pegar status do Docker: ${error instanceof Error ? error.message : String(error)}`
         }]
       };
     }
@@ -171,7 +171,7 @@ server.resource(
       const { stdout: uptime } = await execAsync("uptime -p");
       const { stdout: memory } = await execAsync("free -h | grep Mem");
       const { stdout: disk } = await execAsync("df -h / | tail -1");
-      
+
       return {
         contents: [{
           uri: uri.href,
@@ -193,7 +193,7 @@ Usuário: Mateus (YOUX GROUP)`
         contents: [{
           uri: uri.href,
           mimeType: "text/plain",
-          text: `❌ Erro ao pegar info do sistema: ${error.message}`
+          text: `❌ Erro ao pegar info do sistema: ${error instanceof Error ? error.message : String(error)}`
         }]
       };
     }
@@ -214,7 +214,7 @@ server.tool(
         "ls", "pwd", "echo", "cat", "grep", "find", "df", "du",
         "docker", "docker-compose", "git", "npm", "node"
       ];
-      
+
       const firstWord = command.split(" ")[0];
       if (!allowedCommands.includes(firstWord)) {
         return {
@@ -224,9 +224,9 @@ server.tool(
           }]
         };
       }
-      
+
       const { stdout, stderr } = await execAsync(command, { cwd });
-      
+
       return {
         content: [{
           type: "text",
@@ -237,7 +237,7 @@ server.tool(
       return {
         content: [{
           type: "text",
-          text: `❌ Erro ao executar comando: ${error.message}`
+          text: `❌ Erro ao executar comando: ${error instanceof Error ? error.message : String(error)}`
         }]
       };
     }
